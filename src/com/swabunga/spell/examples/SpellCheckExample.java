@@ -39,14 +39,14 @@ import java.util.List;
 public class SpellCheckExample implements SpellCheckListener {
 
   private static String dictFile = "dict/english.0";
-  private static String phonetFile = "dict/phonet.en";
+//  private static String phonetFile = "dict/phonet.en";
 
   private SpellChecker spellCheck = null;
 
 
   public SpellCheckExample() {
     try {
-      SpellDictionary dictionary = new SpellDictionaryHashMap(new File(dictFile), new File(phonetFile));
+      SpellDictionary dictionary = new SpellDictionaryHashMap(new File(dictFile), null);
 
       spellCheck = new SpellChecker(dictionary);
       spellCheck.addSpellCheckListener(this);

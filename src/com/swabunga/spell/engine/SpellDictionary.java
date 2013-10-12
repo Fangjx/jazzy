@@ -86,5 +86,9 @@ public interface SpellDictionary {
    * @see com.swabunga.spell.engine.Word
    */
   public List getSuggestions(String sourceWord, int scoreThreshold , int[][] matrix);
+  
+  public List getUserWordList();
+  
+  public boolean deleteWord(String word);
 
 }

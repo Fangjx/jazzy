@@ -463,11 +463,14 @@ public class SpellChecker {
    * @return Either SPELLCHECK_OK, SPELLCHECK_CANCEL or the number of errors found. The number of errors are those that
    * are found BEFORE any corrections are made.
    */
-  public final int checkSpelling(WordTokenizer tokenizer) {
+  public final List<Map<String,List<String>>> checkSpelling(String text) {
+	StringWordTokenizer tokenizer = new StringWordTokenizer(text); 
     int errors = 0;
     boolean terminated = false;
     //Keep track of the previous word
 //    String previousWord = null;
+    List<Map<String,List<String>>> result = new ArrayList<Map<String,List<String>>>();
+    
     while (tokenizer.hasMoreWords() && !terminated) {
       String word = tokenizer.nextWord();
       //Check the spelling of the word
@@ -492,9 +495,12 @@ public class SpellChecker {
               //Fire the event.
               List suggestions = getSuggestions(word, config.getInteger(Configuration.SPELL_THRESHOLD));
               if (capitalizeSuggestions(word, tokenizer))
-                suggestions = makeSuggestionsCapitalized(suggestions);
-              SpellCheckEvent event = new BasicSpellCheckEvent(word, suggestions, tokenizer);
-              terminated = fireAndHandleEvent(tokenizer, event);
+            	  suggestions = makeSuggestionsCapitalized(suggestions);
+          	 Map<String,List<String>> map = new HashMap<String,List<String>>();
+          	 map.put(word, suggestions);
+          	 result.add(map);
+//              SpellCheckEvent event = new BasicSpellCheckEvent(word, suggestions, tokenizer);
+//              terminated = fireAndHandleEvent(tokenizer, event);
             }
           }
         }
@@ -512,19 +518,81 @@ public class SpellChecker {
           buf.setCharAt(0, Character.toUpperCase(word.charAt(0)));
           Vector suggestion = new Vector();
           suggestion.addElement(new Word(buf.toString(), 0));
-          SpellCheckEvent event = new BasicSpellCheckEvent(word, suggestion, tokenizer);
-          terminated = fireAndHandleEvent(tokenizer, event);
+//          SpellCheckEvent event = new BasicSpellCheckEvent(word, suggestion, tokenizer);
+//          terminated = fireAndHandleEvent(tokenizer, event);
+          Map<String,List<String>> map = new HashMap<String,List<String>>();
+          List<String> suggestions = new ArrayList<String>();
+          suggestions.add(buf.toString());
+          map.put(word, suggestions);
+          result.add(map);
         }
       }
     }
-    if (terminated)
-      return SPELLCHECK_CANCEL;
-    else if (errors == 0)
-      return SPELLCHECK_OK;
-    else
-      return errors;
+   
+    return result;
   }
   
+  public final int checkSpelling(WordTokenizer tokenizer) {
+	    int errors = 0;
+	    boolean terminated = false;
+	    //Keep track of the previous word
+//	    String previousWord = null;
+	    while (tokenizer.hasMoreWords() && !terminated) {
+	      String word = tokenizer.nextWord();
+	      //Check the spelling of the word
+	      if (!isCorrect(word)) {
+	          if ((config.getBoolean(Configuration.SPELL_IGNOREMIXEDCASE) && isMixedCaseWord(word, tokenizer.isNewSentence())) ||
+	            (config.getBoolean(Configuration.SPELL_IGNOREUPPERCASE) && isUpperCaseWord(word)) ||
+	            (config.getBoolean(Configuration.SPELL_IGNOREDIGITWORDS) && isDigitWord(word)) ||
+	            (config.getBoolean(Configuration.SPELL_IGNOREINTERNETADDRESSES) && isINETWord(word))) {
+	          //Null event. Since we are ignoring this word due
+	          //to one of the above cases.
+	        } else {
+	          //We cant ignore this misspelt word
+	          //For this invalid word are we ignoring the misspelling?
+	          if (!isIgnored(word)) {
+	            errors++;
+	            //Is this word being automagically replaced
+	            if (autoReplaceWords.containsKey(word)) {
+	              tokenizer.replaceWord((String) autoReplaceWords.get(word));
+	            } else {
+	              //JMH Need to somehow capitalise the suggestions if
+	              //ignoreSentenceCapitalisation is not set to true
+	              //Fire the event.
+	              List suggestions = getSuggestions(word, config.getInteger(Configuration.SPELL_THRESHOLD));
+	              if (capitalizeSuggestions(word, tokenizer))
+	                suggestions = makeSuggestionsCapitalized(suggestions);
+	              SpellCheckEvent event = new BasicSpellCheckEvent(word, suggestions, tokenizer);
+	              terminated = fireAndHandleEvent(tokenizer, event);
+	            }
+	          }
+	        }
+	      } else {
+	        //This is a correctly spelt word. However perform some extra checks
+	        /*
+	         *  JMH TBD          //Check for multiple words
+	         *  if (!ignoreMultipleWords &&) {
+	         *  }
+	         */
+	        //Check for capitalisation
+	        if (isSupposedToBeCapitalized(word, tokenizer)) {
+	          errors++;
+	          StringBuffer buf = new StringBuffer(word);
+	          buf.setCharAt(0, Character.toUpperCase(word.charAt(0)));
+	          Vector suggestion = new Vector();
+	          suggestion.addElement(new Word(buf.toString(), 0));
+	          SpellCheckEvent event = new BasicSpellCheckEvent(word, suggestion, tokenizer);
+	          terminated = fireAndHandleEvent(tokenizer, event);
+	        }
+	      }
+	    }
+	    if (terminated)
+	      return SPELLCHECK_CANCEL;
+	    else if (errors == 0)
+	      return SPELLCHECK_OK;
+	    else
+	      return errors;
+	  }
   
   private List makeSuggestionsCapitalized(List suggestions) {
     Iterator iterator = suggestions.iterator();

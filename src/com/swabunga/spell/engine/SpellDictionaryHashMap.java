@@ -24,7 +24,14 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 package com.swabunga.spell.engine;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.Reader;
+import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Vector;
@@ -312,4 +319,88 @@ public class SpellDictionaryHashMap extends SpellDictionaryASpell {
       return true;
     return false;
   }
+  
+  public List getUserWordList(){
+	    List list = new ArrayList();
+	    BufferedReader br = null;
+		try {
+			 br = new BufferedReader(new FileReader(dictFile));
+			 String line = br.readLine();
+			  while (line != null) {
+				  list.add(line);
+				  line = br.readLine();
+			  }
+			  
+			  br.close();
+			
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}finally{
+			if(br != null){
+				try {
+					br.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+		
+		return list;
+  }
+  
+  private void removeWordFromMainDictionary(String word){
+	  String code = getCode(word);
+	  Vector list = (Vector) mainDictionary.get(code);
+	  if (list != null) {
+		  list.remove(word);
+	  }
+  }
+  
+  public boolean deleteWord(String word){
+	  removeWordFromMainDictionary(word);
+	  
+	  BufferedReader br = null;
+	  FileWriter w = null;
+	  try {
+		  StringBuffer sb = new StringBuffer("");
+		  br = new BufferedReader(new FileReader(dictFile));
+
+		  String line = br.readLine();
+		  while (line != null) {
+			  if(!line.equals(word)){
+				  sb.append(line).append("\n");
+			  }
+			  line = br.readLine();
+		  }
+	   
+		  br.close();
+
+    	 //open file in rewrite mode
+         w = new FileWriter(dictFile.toString(), false);
+         w.write(sb.toString());
+         w.close();
+         
+	  } catch (IOException e) {
+		  System.out.println("Error writing to dictionary file");
+		  e.printStackTrace();
+		  return false;
+		  
+	  }finally{
+		  try {
+			  if(br != null){
+					br.close();
+			  }
+			  if(w != null){
+				  w.close();
+			  }
+		  } catch (IOException e) {
+			  e.printStackTrace();
+		  }
+	  }
+	  
+	  return true;
+  }
+
 }

@@ -344,4 +344,14 @@ public abstract class SpellDictionaryASpell implements SpellDictionary {
       return true;
     return false;
   }
+  
+  public List getUserWordList(){
+	  //not implemented
+	  return null;
+  }
+  
+  public boolean deleteWord(String word){
+	  //not implemented
+	  return false;
+  }
 }
